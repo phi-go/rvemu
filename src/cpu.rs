@@ -227,12 +227,12 @@ pub struct Cpu {
     /// System bus.
     pub bus: Bus,
     /// SV39 paging flag.
-    enable_paging: bool,
+    pub enable_paging: bool,
     /// Physical page number (PPN) × PAGE_SIZE (4096).
-    page_table: u64,
+    pub page_table: u64,
     /// A set of bytes that subsumes the bytes in the addressed word used in
     /// load-reserved/store-conditional instructions.
-    reservation_set: Vec<u64>,
+    pub reservation_set: Vec<u64>,
     /// Idle state. True when WFI is called, and becomes false when an interrupt happens.
     pub idle: bool,
     /// Counter of each instructions for debug.
@@ -545,14 +545,14 @@ impl Cpu {
 
     /// Read `size`-bit data from the system bus with the translation a virtual address to a physical address
     /// if it is enabled.
-    fn read(&mut self, v_addr: u64, size: u8) -> Result<u64, Exception> {
+    pub fn read(&mut self, v_addr: u64, size: u8) -> Result<u64, Exception> {
         let p_addr = self.translate(v_addr, AccessType::Load)?;
         self.bus.read(p_addr, size)
     }
 
     /// Write `size`-bit data to the system bus with the translation a virtual address to a physical address
     /// if it is enabled.
-    fn write(&mut self, v_addr: u64, value: u64, size: u8) -> Result<(), Exception> {
+    pub fn write(&mut self, v_addr: u64, value: u64, size: u8) -> Result<(), Exception> {
         // "The SC must fail if a write from some other device to the bytes accessed by the LR can
         // be observed to occur between the LR and SC."
         if self.reservation_set.contains(&v_addr) {
@@ -1519,7 +1519,7 @@ impl Cpu {
             0x27 => {
                 // RV32F and RV64F
                 // offset[11:5|4:0] = inst[31:25|11:7]
-                let offset = ((((inst as i32 as i64) >> 20) as u64) & 0xfe0) | ((inst >> 7) & 0x1f);
+                let offset = (((inst as i32 as i64) >> 25) as u64) << 5 | ((inst >> 7) & 0x1f);
                 let addr = self.xregs.read(rs1).wrapping_add(offset);
                 match funct3 {
                     0x2 => {
@@ -2345,7 +2345,7 @@ impl Cpu {
                     }
                 }
             }
-            0x4b => {
+            0x4f => {
                 // RV32F and RV64F
                 // TODO: support the rounding mode encoding (rm).
                 let rs3 = ((inst & 0xf8000000) >> 27) as u64;
@@ -2377,7 +2377,7 @@ impl Cpu {
                     }
                 }
             }
-            0x4f => {
+            0x4b => {
                 // RV32F and RV64F
                 // TODO: support the rounding mode encoding (rm).
                 let rs3 = ((inst & 0xf8000000) >> 27) as u64;
